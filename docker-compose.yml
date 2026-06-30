@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: limitdeposit-postgres
+    environment:
+      POSTGRES_DB: limitdeposit
+      POSTGRES_USER: limitdeposit
+      POSTGRES_PASSWORD: limitdeposit
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U limitdeposit -d limitdeposit"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
