@@ -6,7 +6,7 @@ import com.hyunsu.limitdeposit.common.auth.dto.TokenResponse;
 import com.hyunsu.limitdeposit.common.exception.BusinessException;
 import com.hyunsu.limitdeposit.common.exception.ErrorCode;
 import com.hyunsu.limitdeposit.customer.domain.Customer;
-import com.hyunsu.limitdeposit.customer.infrastructure.CustomerRepository;
+import com.hyunsu.limitdeposit.customer.domain.CustomerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

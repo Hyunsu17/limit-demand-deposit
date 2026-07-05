@@ -1,6 +1,6 @@
 package com.hyunsu.limitdeposit.common.auth;
 
-import com.hyunsu.limitdeposit.customer.infrastructure.CustomerRepository;
+import com.hyunsu.limitdeposit.customer.domain.CustomerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
