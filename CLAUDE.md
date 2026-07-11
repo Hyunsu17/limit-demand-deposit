@@ -20,8 +20,9 @@
 | 항목 | 내용 |
 |------|------|
 | **Week 0** | ✅ 완료 (2026-06-30) — 세팅, 인증, 스켈레톤 |
-| **Week 1** | 🔄 진행중 (2026-07-04 조기 착수) — 계좌개설 D1 검증 + TX1 배관 완성, 테스트 미작성 |
-| **다음 단계** | Week 1 테스트 작성 → Week 2 (7/12~7/18): TX2 `ACCT_LEDGER` 개설 확정 |
+| **Week 1** | ✅ 완료 (2026-07-11) — 계좌개설 D1 검증 + TX1/TX2 배관 + 전 계층 테스트 (전체 스위트 51개 그린) |
+| **다음 단계** | Week 2 (7/12~7/18): `AccountOpenServiceTest` APPROVED 경로 → @SpringBootTest 통합(D7-B 커밋시점 flush 예외타입 포함) + NCIS WireMock |
+| **진행 방식 합의** | 인프라 테스트는 Week 3~4부터 하나씩 설명 → 함께 작성 → 리뷰 (일괄 작성 금지, 2026-07-11) |
 | **데드라인** | 2026-09-26 |
 
 ---
@@ -304,6 +305,7 @@ db/migration/
 | 2026-07-08 | `product` 최상위 패키지 신설 (account 하위 아님 — customer와 동급 기준정보 도메인) | decisions/2026-07-08-product-패키지-신설.md |
 | 2026-07-08 | `account.domain`을 애그리거트별 서브패키지(account/opening/ncis)로 분리, Channel은 공용 VO로 루트 유지 | decisions/2026-07-08-domain-패키지-애그리거트-분리.md |
 | 2026-07-08 | D7-B UNIQUE 충돌은 시스템오류 아닌 반려 — `DataIntegrityViolationException` → `REJECTED(3)` + `DUPLICATE_ACCOUNT`(409) | log.md 2026-07-08 [DECISION] |
+| 2026-07-11 | 인프라 테스트 설계 기준 + @DataJpaTest 4종 세트(`Replace.NONE`+`@Import(어댑터, JpaConfig)`+test 프로파일) + 예외변환은 `saveAndFlush` 경유 + BigDecimal assert는 `isEqualByComparingTo` | decisions/2026-07-11-인프라테스트-testcontainers-컨벤션.md |
 
 ---
 
