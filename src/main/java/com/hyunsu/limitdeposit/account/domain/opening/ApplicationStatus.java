@@ -1,4 +1,4 @@
-package com.hyunsu.limitdeposit.account.domain;
+package com.hyunsu.limitdeposit.account.domain.opening;
 
 /**
  * ACCT_OPEN_APPLICATION.APP_STATUS

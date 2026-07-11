@@ -1,8 +1,8 @@
 package com.hyunsu.limitdeposit.account.infrastructure;
 
-import com.hyunsu.limitdeposit.account.domain.AccountOpenApplication;
-import com.hyunsu.limitdeposit.account.domain.AccountOpenApplicationRepository;
-import com.hyunsu.limitdeposit.account.domain.ApplicationStatus;
+import com.hyunsu.limitdeposit.account.domain.opening.AccountOpenApplication;
+import com.hyunsu.limitdeposit.account.domain.opening.AccountOpenApplicationRepository;
+import com.hyunsu.limitdeposit.account.domain.opening.ApplicationStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 

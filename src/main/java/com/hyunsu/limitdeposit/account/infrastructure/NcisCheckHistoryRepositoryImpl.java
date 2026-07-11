@@ -1,7 +1,7 @@
 package com.hyunsu.limitdeposit.account.infrastructure;
 
-import com.hyunsu.limitdeposit.account.domain.NcisCheckHistory;
-import com.hyunsu.limitdeposit.account.domain.NcisCheckHistoryRepository;
+import com.hyunsu.limitdeposit.account.domain.ncis.NcisCheckHistory;
+import com.hyunsu.limitdeposit.account.domain.ncis.NcisCheckHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -21,5 +21,10 @@ public class NcisCheckHistoryRepositoryImpl implements NcisCheckHistoryRepositor
     @Override
     public Optional<NcisCheckHistory> findById(Long ncisCheckId) {
         return jpaRepository.findById(ncisCheckId);
+    }
+
+    @Override
+    public Optional<NcisCheckHistory> findByApplicationId(Long applicationId) {
+        return jpaRepository.findByApplicationId(applicationId);
     }
 }

@@ -19,7 +19,10 @@ public enum ErrorCode {
     UNDER_AGE(HttpStatus.BAD_REQUEST, "UNDER_AGE", "가입 가능 연령(만 14세) 미만입니다."),
     APPLICATION_IN_PROGRESS(HttpStatus.CONFLICT, "APPLICATION_IN_PROGRESS", "이미 진행 중인 계좌개설 신청이 있습니다."),
     NCIS_CHECK_REJECTED(HttpStatus.CONFLICT, "NCIS_CHECK_REJECTED", "정보집중기관 확인 결과 개설이 불가합니다."),
-    NCIS_COMMUNICATION_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "NCIS_COMMUNICATION_ERROR", "정보집중기관 통신 중 오류가 발생했습니다.");
+    NCIS_COMMUNICATION_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "NCIS_COMMUNICATION_ERROR", "정보집중기관 통신 중 오류가 발생했습니다."),
+
+    PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "PRODUCT_NOT_FOUND", "유효한 상품을 찾을 수 없습니다."),
+    ACCOUNT_OPEN_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "ACCOUNT_OPEN_FAILED", "계좌 개설 처리 중 오류가 발생했습니다. 다시 시도해주세요.");
 
     private final HttpStatus httpStatus;
     private final String code;

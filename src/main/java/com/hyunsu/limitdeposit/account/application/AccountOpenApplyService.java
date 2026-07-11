@@ -1,10 +1,10 @@
 package com.hyunsu.limitdeposit.account.application;
 
 import com.hyunsu.limitdeposit.account.application.dto.AccountOpenRequest;
-import com.hyunsu.limitdeposit.account.domain.AccountOpenApplication;
-import com.hyunsu.limitdeposit.account.domain.AccountOpenApplicationRepository;
-import com.hyunsu.limitdeposit.account.domain.NcisCheckHistory;
-import com.hyunsu.limitdeposit.account.domain.NcisCheckHistoryRepository;
+import com.hyunsu.limitdeposit.account.domain.opening.AccountOpenApplication;
+import com.hyunsu.limitdeposit.account.domain.opening.AccountOpenApplicationRepository;
+import com.hyunsu.limitdeposit.account.domain.ncis.NcisCheckHistory;
+import com.hyunsu.limitdeposit.account.domain.ncis.NcisCheckHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

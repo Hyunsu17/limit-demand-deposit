@@ -1,19 +1,25 @@
 package com.hyunsu.limitdeposit.account.infrastructure;
 
-import com.hyunsu.limitdeposit.account.domain.AccountRepository;
+import com.hyunsu.limitdeposit.account.domain.account.Account;
+import com.hyunsu.limitdeposit.account.domain.account.AccountRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
-/**
- * Week2에서 Account(ACCT_LEDGER) 엔티티 확정 후 JPA 리포지토리 기반으로 구현 예정.
- */
 @Repository
+@RequiredArgsConstructor
 public class AccountRepositoryImpl implements AccountRepository {
+
+    private final AccountJpaRepository jpaRepository;
+
+    @Override
+    public Account save(Account account) {
+        // [Claude] PK(acctNo)가 할당 방식이라 save()가 신규 여부를 SELECT로 확인(merge)한다.
+        // [Claude] 개설 1건당 SELECT 1회 추가 — 무시 가능한 수준이라 Persistable 최적화는 보류
+        return jpaRepository.save(account);
+    }
 
     @Override
     public boolean existsByCustomerId(Long customerId) {
-        // [Claude] Week2 임시: ACCT_LEDGER 테이블이 아직 없다. 지금은 계좌가 0건이므로
-        // [Claude] '중복 없음(false)'이 사실상 정답 — 검증 흐름을 막지 않도록 false 반환.
-        // [Claude] Week2에서 AccountJpaRepository.existsByCustomerId 로 실제 구현 교체.
-        return false;
+        return jpaRepository.existsByCustomerId(customerId);
     }
 }

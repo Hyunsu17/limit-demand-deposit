@@ -15,6 +15,9 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+ncis:
+  base-url: http://localhost:8089  # NCIS Mock(WireMock) 기본 주소 — 테스트에서 동적 포트로 재정의
+
 ---
 spring:
   config:

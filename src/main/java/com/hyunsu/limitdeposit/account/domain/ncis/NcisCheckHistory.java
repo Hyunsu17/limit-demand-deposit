@@ -1,5 +1,6 @@
-package com.hyunsu.limitdeposit.account.domain;
+package com.hyunsu.limitdeposit.account.domain.ncis;
 
+import com.hyunsu.limitdeposit.account.domain.Channel;
 import com.hyunsu.limitdeposit.common.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;

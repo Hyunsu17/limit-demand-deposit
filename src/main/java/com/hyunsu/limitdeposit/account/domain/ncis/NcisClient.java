@@ -1,4 +1,4 @@
-package com.hyunsu.limitdeposit.account.domain;
+package com.hyunsu.limitdeposit.account.domain.ncis;
 
 /**
  * NCIS(정보집중기관) 실명번호 중복확인 포트 (D3: 동기 호출)

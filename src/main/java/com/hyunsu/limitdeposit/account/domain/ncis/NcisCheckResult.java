@@ -1,4 +1,4 @@
-package com.hyunsu.limitdeposit.account.domain;
+package com.hyunsu.limitdeposit.account.domain.ncis;
 
 /**
  * NCIS_CHECK_HIST.CHECK_RESULT
