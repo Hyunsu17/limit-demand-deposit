@@ -1,9 +1,9 @@
 package com.hyunsu.limitdeposit.account.application;
 
 import com.hyunsu.limitdeposit.account.application.dto.AccountOpenRequest;
-import com.hyunsu.limitdeposit.account.domain.AccountOpenApplicationRepository;
+import com.hyunsu.limitdeposit.account.domain.opening.AccountOpenApplicationRepository;
 import com.hyunsu.limitdeposit.account.domain.Channel;
-import com.hyunsu.limitdeposit.account.domain.NcisCheckHistoryRepository;
+import com.hyunsu.limitdeposit.account.domain.ncis.NcisCheckHistoryRepository;
 import com.hyunsu.limitdeposit.common.exception.BusinessException;
 import com.hyunsu.limitdeposit.common.exception.ErrorCode;
 import org.junit.jupiter.api.DisplayName;

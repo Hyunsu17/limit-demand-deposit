@@ -1,8 +1,8 @@
 package com.hyunsu.limitdeposit.account.application;
 
-import com.hyunsu.limitdeposit.account.domain.AccountOpenApplicationRepository;
-import com.hyunsu.limitdeposit.account.domain.AccountRepository;
-import com.hyunsu.limitdeposit.account.domain.ApplicationStatus;
+import com.hyunsu.limitdeposit.account.domain.opening.AccountOpenApplicationRepository;
+import com.hyunsu.limitdeposit.account.domain.account.AccountRepository;
+import com.hyunsu.limitdeposit.account.domain.opening.ApplicationStatus;
 import com.hyunsu.limitdeposit.common.exception.BusinessException;
 import com.hyunsu.limitdeposit.common.exception.ErrorCode;
 import com.hyunsu.limitdeposit.customer.domain.Customer;

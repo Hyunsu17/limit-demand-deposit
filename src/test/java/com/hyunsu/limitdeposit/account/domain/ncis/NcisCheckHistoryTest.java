@@ -1,5 +1,6 @@
-package com.hyunsu.limitdeposit.account.domain;
+package com.hyunsu.limitdeposit.account.domain.ncis;
 
+import com.hyunsu.limitdeposit.account.domain.Channel;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

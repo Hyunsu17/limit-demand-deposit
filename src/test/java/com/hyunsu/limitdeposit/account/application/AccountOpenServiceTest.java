@@ -2,9 +2,9 @@ package com.hyunsu.limitdeposit.account.application;
 
 import com.hyunsu.limitdeposit.account.application.dto.AccountOpenRequest;
 import com.hyunsu.limitdeposit.account.domain.Channel;
-import com.hyunsu.limitdeposit.account.domain.NcisCheckResponse;
-import com.hyunsu.limitdeposit.account.domain.NcisCheckResult;
-import com.hyunsu.limitdeposit.account.domain.NcisClient;
+import com.hyunsu.limitdeposit.account.domain.ncis.NcisCheckResponse;
+import com.hyunsu.limitdeposit.account.domain.ncis.NcisCheckResult;
+import com.hyunsu.limitdeposit.account.domain.ncis.NcisClient;
 import com.hyunsu.limitdeposit.common.exception.BusinessException;
 import com.hyunsu.limitdeposit.common.exception.ErrorCode;
 import org.junit.jupiter.api.DisplayName;
@@ -28,6 +28,8 @@ class AccountOpenServiceTest {
     private AccountOpenApplyService applyService;
     @Mock
     private NcisClient ncisClient;
+    @Mock
+    private AccountOpenConfirmService confirmService;
     @InjectMocks
     private AccountOpenService accountOpenService;
 
@@ -87,18 +89,7 @@ class AccountOpenServiceTest {
                 .isInstanceOfSatisfying(BusinessException.class, ex->assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.NCIS_COMMUNICATION_ERROR));
     }
 
-    // TODO : Week2에서 구현후 대체
-    @Test
-    @DisplayName("NCIS_응답이_APPROVED이면_TX2_미구현으로_UnsupportedOperationException이_발생한다 (Week2에서 TX2 구현 후 이 테스트는 대체될 임시 케이스)")
-    void openAccount_ncisApproved_exception_throws() {
-        // given
-        when(applyService.apply(request)).thenReturn(APPLICATION_ID);
-        when(ncisClient.check(CUSTOMER_ID)).thenReturn(new NcisCheckResponse(NcisCheckResult.APPROVED, null));
-
-        // when & then
-        assertThatThrownBy(() -> accountOpenService.openAccount(request))
-                .isInstanceOf(UnsupportedOperationException.class)
-                .hasMessageContaining(APPLICATION_ID.toString());
-    }
+    // [Claude] Week1의 "APPROVED → UnsupportedOperationException" 임시 테스트는 TX2 구현으로 제거.
+    // [Claude] APPROVED 경로(confirmService.approve 호출 + D8 보상)는 Week2 테스트에서 사용자가 작성 예정.
 
 }
