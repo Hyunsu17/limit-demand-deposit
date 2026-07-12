@@ -13,6 +13,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -30,6 +32,8 @@ class AccountOpenServiceTest {
     private NcisClient ncisClient;
     @Mock
     private AccountOpenConfirmService confirmService;
+    @Mock
+    private AccountOpenCompensationService compensationService;
     @InjectMocks
     private AccountOpenService accountOpenService;
 
@@ -50,7 +54,6 @@ class AccountOpenServiceTest {
     }
 
 
-
     @Test
     @DisplayName("NCIS_응답이_REJECTED이면_NCIS_CHECK_REJECTED_예외가_발생한다")
     void openAccount_ncisRejected_exception_throws() {
@@ -62,7 +65,8 @@ class AccountOpenServiceTest {
         assertThatThrownBy(() -> accountOpenService.openAccount(request))
                 .isInstanceOfSatisfying(BusinessException.class,
                         ex -> assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.NCIS_CHECK_REJECTED));
-        inOrder(applyService, ncisClient);
+        verify(confirmService).reject(APPLICATION_ID, "불가");
+
     }
 
     @Test
@@ -75,6 +79,7 @@ class AccountOpenServiceTest {
         // when & then
         assertThatThrownBy(() -> accountOpenService.openAccount(request))
                 .isInstanceOf(IllegalStateException.class);
+        verifyNoInteractions(confirmService, compensationService);
     }
 
     @Test
@@ -82,14 +87,59 @@ class AccountOpenServiceTest {
     void openAccount_ncisError_exception_throws() {
         // given
         when(applyService.apply(request)).thenReturn(APPLICATION_ID);
-        when(ncisClient.check(CUSTOMER_ID)).thenReturn(new NcisCheckResponse(NcisCheckResult.ERROR, null));
+        when(ncisClient.check(CUSTOMER_ID)).thenReturn(new NcisCheckResponse(NcisCheckResult.ERROR, "에러"));
 
         // when & then
         assertThatThrownBy(() -> accountOpenService.openAccount(request))
-                .isInstanceOfSatisfying(BusinessException.class, ex->assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.NCIS_COMMUNICATION_ERROR));
+                .isInstanceOfSatisfying(BusinessException.class,
+                        ex -> assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.NCIS_COMMUNICATION_ERROR));
+        verify(confirmService).markCommunicationError(APPLICATION_ID, "에러");
     }
 
-    // [Claude] Week1의 "APPROVED → UnsupportedOperationException" 임시 테스트는 TX2 구현으로 제거.
-    // [Claude] APPROVED 경로(confirmService.approve 호출 + D8 보상)는 Week2 테스트에서 사용자가 작성 예정.
+    @Test
+    @DisplayName("NCIS_응답이_APPROVED이면_APPROVE에_위임하고_보상은_호출하지_않는다")
+    void openAccount_ncisApproved_delegates_approve_never_compensation() {
+        // given
+        when(applyService.apply(request)).thenReturn(APPLICATION_ID);
+        when(ncisClient.check(CUSTOMER_ID)).thenReturn(new NcisCheckResponse(NcisCheckResult.APPROVED, "승인메시지"));
+
+        // when
+        accountOpenService.openAccount(request);
+
+        // then
+        verify(confirmService).approve(APPLICATION_ID, "승인메시지");
+        verifyNoInteractions(compensationService);
+    }
+
+    @Test
+    @DisplayName("APPROVE가_무결성위반_예외이면_REJECTDUPLICATE_보상_후_DUPLICATE_ACCOUNT_예외가_발생한다")
+    void openAccount_approveIntegrityViolation_rejectDuplicate_and_throws() {
+        // given
+        when(applyService.apply(request)).thenReturn(APPLICATION_ID);
+        when(ncisClient.check(CUSTOMER_ID)).thenReturn(new NcisCheckResponse(NcisCheckResult.APPROVED, "승인메시지"));
+        doThrow(new DataIntegrityViolationException("UNIQUE 위반")).when(confirmService).approve(APPLICATION_ID, "승인메시지");
+
+        // when & then
+        assertThatThrownBy(() -> accountOpenService.openAccount(request))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        ex -> assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.DUPLICATE_ACCOUNT));
+        verify(compensationService).rejectDuplicate(APPLICATION_ID);
+    }
+
+    @Test
+    @DisplayName("APPROVE가_그_외_예외이면_MARKSYSTEMERROR_보상_후_ACCOUNT_OPEN_FAILED_예외가_발생한다")
+    void openAccount_approveUnexpectedException_markSystemError_and_throws() {
+        // given
+        when(applyService.apply(request)).thenReturn(APPLICATION_ID);
+        when(ncisClient.check(CUSTOMER_ID)).thenReturn(new NcisCheckResponse(NcisCheckResult.APPROVED, "승인메시지"));
+        doThrow(new CannotAcquireLockException("락획득 실패")).when(confirmService).approve(APPLICATION_ID, "승인메시지");
+
+        // when & then
+        assertThatThrownBy(() -> accountOpenService.openAccount(request))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        ex -> assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.ACCOUNT_OPEN_FAILED));
+        verify(compensationService).markSystemError(APPLICATION_ID);
+
+    }
 
 }
