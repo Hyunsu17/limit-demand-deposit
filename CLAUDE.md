@@ -20,9 +20,10 @@
 | 항목 | 내용 |
 |------|------|
 | **Week 0** | ✅ 완료 (2026-06-30) — 세팅, 인증, 스켈레톤 |
-| **Week 1** | ✅ 완료 (2026-07-11) — 계좌개설 D1 검증 + TX1/TX2 배관 + 전 계층 테스트 (전체 스위트 51개 그린) |
-| **다음 단계** | Week 2 (7/12~7/18): `AccountOpenServiceTest` APPROVED 경로 → @SpringBootTest 통합(D7-B 커밋시점 flush 예외타입 포함) + NCIS WireMock |
-| **진행 방식 합의** | 인프라 테스트는 Week 3~4부터 하나씩 설명 → 함께 작성 → 리뷰 (일괄 작성 금지, 2026-07-11) |
+| **Week 1** | ✅ 완료 (2026-07-11) — 계좌개설 D1 검증 + TX1/TX2 배관 + 전 계층 테스트 |
+| **Week 2** | ✅ 완료 (2026-07-12) — APPROVED 경로 단위 테스트 + 통합 시나리오 5개(정상/반려/통신오류/롤백보상/D7-B 예외타입) 완료, 전체 스위트 60개 그린 |
+| **다음 단계** | Phase 4 Week 3 (7/19~7/25): 입출금 API + 비관적 락 + `TRANS_RAW`/`TRANS_HISTORY` |
+| **진행 방식 합의** | 인프라·통합 테스트는 하나씩 설명 → 함께 작성 → 리뷰 (일괄 작성 금지, 2026-07-11 합의) |
 | **데드라인** | 2026-09-26 |
 
 ---
@@ -306,6 +307,8 @@ db/migration/
 | 2026-07-08 | `account.domain`을 애그리거트별 서브패키지(account/opening/ncis)로 분리, Channel은 공용 VO로 루트 유지 | decisions/2026-07-08-domain-패키지-애그리거트-분리.md |
 | 2026-07-08 | D7-B UNIQUE 충돌은 시스템오류 아닌 반려 — `DataIntegrityViolationException` → `REJECTED(3)` + `DUPLICATE_ACCOUNT`(409) | log.md 2026-07-08 [DECISION] |
 | 2026-07-11 | 인프라 테스트 설계 기준 + @DataJpaTest 4종 세트(`Replace.NONE`+`@Import(어댑터, JpaConfig)`+test 프로파일) + 예외변환은 `saveAndFlush` 경유 + BigDecimal assert는 `isEqualByComparingTo` | decisions/2026-07-11-인프라테스트-testcontainers-컨벤션.md |
+| 2026-07-12 | 통합 테스트 컨벤션 — 테스트 `@Transactional` 금지(실 커밋 경계 검증) + `@BeforeEach` DELETE 정리(product 시드 보존) + WireMock standalone·static 기동·`@DynamicPropertySource` / 분기 테스트 예외는 경계 인접 타입(`CannotAcquireLockException`) | decisions/2026-07-12-통합테스트-springboottest-wiremock-컨벤션.md |
+| 2026-07-12 | D7-B 커밋시점 flush 예외타입 리스크 해소 — 실측 결과 `DataIntegrityViolationException`으로 정상 변환(`TransactionSystemException` 우려는 기우), `AccountOpenService` catch 수정 불필요 | queries/2026-07-12-d7b-flush-exception-실측-확인.md |
 
 ---
 
