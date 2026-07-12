@@ -56,8 +56,8 @@ public class AccountOpenService {
         } catch (DataIntegrityViolationException e) {
             // [Claude] D7-B — CUSTOMER_ID UNIQUE 위반은 시스템오류가 아니라 동시 개설 경합에 의한
             // [Claude] 정상적인 중복 상태. 재시도해도 D2에서 동일하게 막히므로 그 결과를 그대로 알려준다
-            // TODO 커밋시점에 DataIntegrityViolationException이 아니라 TransactionSystemException로 감싸질 수 있음
-            // 확인필요
+            // [Claude] 2026-07-12 통합 테스트로 실측 확인 — 커밋시점 flush 예외도 DataIntegrityViolationException으로
+            // [Claude] 정상 변환됨(TransactionSystemException으로 새지 않음). 우려했던 리스크는 기우로 확인.
             log.warn("TX2(계좌 개설 확정) 실패 — 동시 개설 경합(D7-B). applicationId={}", applicationId, e);
             compensationService.rejectDuplicate(applicationId);
             throw new BusinessException(ErrorCode.DUPLICATE_ACCOUNT);

@@ -40,6 +40,8 @@ dependencies {
 	testImplementation("org.testcontainers:junit-jupiter")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.springframework.security:spring-security-test")
+	// [Claude] standalone: 의존성 셰이딩 버전 — Boot 3.x 내장 Jetty/Jackson과 버전 충돌 없음
+	testImplementation("org.wiremock:wiremock-standalone:3.13.1")
 	testCompileOnly("org.projectlombok:lombok")
 	testAnnotationProcessor("org.projectlombok:lombok")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
