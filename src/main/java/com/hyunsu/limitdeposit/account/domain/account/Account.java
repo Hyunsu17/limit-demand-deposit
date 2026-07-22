@@ -1,6 +1,9 @@
 package com.hyunsu.limitdeposit.account.domain.account;
 
+import com.hyunsu.limitdeposit.account.domain.opening.ApplicationStatus;
 import com.hyunsu.limitdeposit.common.BaseEntity;
+import com.hyunsu.limitdeposit.common.exception.BusinessException;
+import com.hyunsu.limitdeposit.common.exception.ErrorCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -59,6 +62,10 @@ public class Account extends BaseEntity {
     @Column(name = "open_dt", nullable = false)
     private LocalDate openDt;
 
+    // [Claude] 마지막 거래일 — deposit/withdraw 시 갱신. 개설 시점엔 거래가 없어 NULL
+    @Column(name = "last_txn_dt")
+    private LocalDate lastTxnDt;
+
     private Account(String acctNo, Long customerId, String prodCd, Long ncisCheckId,
                      String depLmtPolicyId, String pymtLmtPolicyId) {
         this.acctNo = acctNo;
@@ -80,5 +87,25 @@ public class Account extends BaseEntity {
     public static Account open(String acctNo, Long customerId, String prodCd, Long ncisCheckId,
                                String depLmtPolicyId, String pymtLmtPolicyId) {
         return new Account(acctNo, customerId, prodCd, ncisCheckId, depLmtPolicyId, pymtLmtPolicyId);
+    }
+
+    private void requireActive(){
+        if (!(this.acctStatus == AccountStatus.ACTIVE)) {
+            throw new BusinessException(ErrorCode.ACCOUNT_NOT_ACTIVE);
+        }
+    }
+
+    public void withdraw(BigDecimal amount) {
+        requireActive();
+        this.balance = this.balance.subtract(amount);
+        this.availableBalance = this.availableBalance.subtract(amount);
+        this.lastTxnDt = LocalDate.now();
+    }
+
+    public void deposit(BigDecimal amount) {
+        requireActive();
+        this.balance = this.balance.add(amount);
+        this.availableBalance = this.availableBalance.add(amount);
+        this.lastTxnDt = LocalDate.now();
     }
 }
