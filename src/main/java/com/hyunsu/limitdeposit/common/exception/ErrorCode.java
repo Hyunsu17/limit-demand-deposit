@@ -1,7 +1,9 @@
 package com.hyunsu.limitdeposit.common.exception;
 
+import com.hyunsu.limitdeposit.account.domain.account.Account;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.graphql.GraphQlProperties;
 import org.springframework.http.HttpStatus;
 
 @Getter
@@ -10,6 +12,7 @@ public enum ErrorCode {
 
     ACCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, "ACCOUNT_NOT_FOUND", "계좌를 찾을 수 없습니다."),
     INSUFFICIENT_BALANCE(HttpStatus.BAD_REQUEST, "INSUFFICIENT_BALANCE", "잔액이 부족합니다."),
+    MONTHLY_DEPOSIT_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "MONTHLY_DEPOSIT_LIMIT_EXCEEDED", "월 입금 한도를 초과했습니다."),
     DUPLICATE_ACCOUNT(HttpStatus.CONFLICT, "DUPLICATE_ACCOUNT", "이미 존재하는 계좌입니다."),
     LOCK_ACQUISITION_FAILED(HttpStatus.CONFLICT, "LOCK_ACQUISITION_FAILED", "락 획득에 실패했습니다."),
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "잘못된 요청입니다."),
@@ -20,6 +23,8 @@ public enum ErrorCode {
     APPLICATION_IN_PROGRESS(HttpStatus.CONFLICT, "APPLICATION_IN_PROGRESS", "이미 진행 중인 계좌개설 신청이 있습니다."),
     NCIS_CHECK_REJECTED(HttpStatus.CONFLICT, "NCIS_CHECK_REJECTED", "정보집중기관 확인 결과 개설이 불가합니다."),
     NCIS_COMMUNICATION_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "NCIS_COMMUNICATION_ERROR", "정보집중기관 통신 중 오류가 발생했습니다."),
+    ACCOUNT_NOT_ACTIVE(HttpStatus.CONFLICT, "ACCOUNT_NOT_ACTIVE", "계좌가 비활성화 되어있습니다."),
+
 
     PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "PRODUCT_NOT_FOUND", "유효한 상품을 찾을 수 없습니다."),
     ACCOUNT_OPEN_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "ACCOUNT_OPEN_FAILED", "계좌 개설 처리 중 오류가 발생했습니다. 다시 시도해주세요.");
