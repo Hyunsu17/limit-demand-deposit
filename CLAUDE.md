@@ -22,7 +22,9 @@
 | **Week 0** | ✅ 완료 (2026-06-30) — 세팅, 인증, 스켈레톤 |
 | **Week 1** | ✅ 완료 (2026-07-11) — 계좌개설 D1 검증 + TX1/TX2 배관 + 전 계층 테스트 |
 | **Week 2** | ✅ 완료 (2026-07-12) — APPROVED 경로 단위 테스트 + 통합 시나리오 5개(정상/반려/통신오류/롤백보상/D7-B 예외타입) 완료, 전체 스위트 60개 그린 |
-| **다음 단계** | Phase 4 Week 3 (7/19~7/25): 입출금 API + 비관적 락 + `TRANS_RAW`/`TRANS_HISTORY` |
+| **Week 3** | 🔄 진행중 (7/19~7/25) — 입금 구현 착수. `Account.lastTxnDt` + `deposit`/`withdraw` 본체, Flyway V4(`deposit_limit_policy`)·V5(거래 3종), 거래·정책 엔티티 + 포트 3파일 완료. 전체 스위트 67개 그린(1 skip) |
+| **다음 단계** | `DepositLimit` VO 재작성(2중 한도·계산 반환 — 기존 `MonthlyDepositLimit`/테스트 대체, **사용자 작성**) → 입금 Service 오케스트레이션(TX 분리·비관적 락 배선) → 통합 테스트 3종 |
+| **미해결(주의)** | `withdraw` 잔액 검증 없음(음수 가능) / 계좌 상태전이 메서드(해지·동결) 부재 → `AccountTest` 비활성 케이스 `@Disabled` 보류 중 / `deposit_limit_policy` D01 시드 금액은 **임시값**(실제 상품 스펙으로 교체 필요) |
 | **진행 방식 합의** | 인프라·통합 테스트는 하나씩 설명 → 함께 작성 → 리뷰 (일괄 작성 금지, 2026-07-11 합의) |
 | **데드라인** | 2026-09-26 |
 
@@ -189,11 +191,15 @@ BigDecimal amount = new BigDecimal("100.1").add(new BigDecimal("200.2"));
 
 ```
 db/migration/
-├── V1__create_customer.sql         ← Week 0 (완료)
-├── V2__create_account.sql          ← Phase 3
-├── V3__create_transaction.sql      ← Phase 4
-└── V4__create_interest.sql         ← Phase 5
+├── V1__create_customer.sql                    ← Week 0 (완료)
+├── V2__create_account_open_application.sql    ← Phase 3 (완료) — 신청 + NCIS 이력
+├── V3__create_account_ledger_and_product.sql  ← Phase 3 (완료) — 원장 + 이력 + 상품
+├── V4__create_deposit_limit_policy.sql        ← Phase 4 (완료) — 입금한도정책 + D01 시드
+├── V5__create_transaction.sql                 ← Phase 4 (완료) — 거래코드/원본/내역
+└── (예정) 이자 — DAILY_BALANCE_SNAPSHOT / INTEREST_HISTORY  ← Phase 5
 ```
+
+> 미생성 유지: `MONTHLY_LIMT_LEDGER`(월누계는 실시간 SUM — 벤치마크 대기), `TXN_PENDING`/`REFUND_HISTORY`(카톡 스코프), `ACCT_PYMT_RESTR`/`PYMT_LMT_POLICY_MST`(지급 스코프)
 
 ---
 
@@ -309,6 +315,9 @@ db/migration/
 | 2026-07-11 | 인프라 테스트 설계 기준 + @DataJpaTest 4종 세트(`Replace.NONE`+`@Import(어댑터, JpaConfig)`+test 프로파일) + 예외변환은 `saveAndFlush` 경유 + BigDecimal assert는 `isEqualByComparingTo` | decisions/2026-07-11-인프라테스트-testcontainers-컨벤션.md |
 | 2026-07-12 | 통합 테스트 컨벤션 — 테스트 `@Transactional` 금지(실 커밋 경계 검증) + `@BeforeEach` DELETE 정리(product 시드 보존) + WireMock standalone·static 기동·`@DynamicPropertySource` / 분기 테스트 예외는 경계 인접 타입(`CannotAcquireLockException`) | decisions/2026-07-12-통합테스트-springboottest-wiremock-컨벤션.md |
 | 2026-07-12 | D7-B 커밋시점 flush 예외타입 리스크 해소 — 실측 결과 `DataIntegrityViolationException`으로 정상 변환(`TransactionSystemException` 우려는 기우), `AccountOpenService` catch 수정 불필요 | queries/2026-07-12-d7b-flush-exception-실측-확인.md |
+| 2026-07-20 | 입출금 프로세스 grill Q1~Q6 — 누계는 실시간 SUM(원장 벤치마크 대기) / 한도초과 입금은 반송(return leg) / 카톡이체 스코프 분리 / `AVAILABLE_BALANCE` 저장 컬럼이 정본(불변식) / 지급도 `TRANS_RAW` 선적재 | decisions/2026-07-20-입출금-프로세스-grill-설계결정.md |
+| 2026-07-22 | **한도 판단은 `Account` 아닌 VO** (판단이 엔티티 상태를 안 쓰면 위치가 틀린 것) / 한도초과는 throw 아닌 **입금가능액 계산 후 분기** — 2중 한도 `MIN(보관한도−잔액, 월한도−누계)` / Flyway V4·V5 4테이블 + **BIGSERIAL 대리키**(ERD 업무키 표기와 의도적 상이) / `TRANS_RAW` 선적재는 **별도 TX 커밋**(복구 주체는 재처리 배치, 보상서비스 불필요) / 월누계 SUM은 거래코드 상수 필터 / 테스트 루틴 = 계약 확정된 도메인 단위는 즉시, Service·통합은 레이어 완성 후 | decisions/2026-07-22-입금-스키마-오케스트레이션-설계결정.md |
+| 2026-07-21 | **유효성 검증 2단계 배치** — ① 입력값(엔티티 불필요)은 `application/dto` 입력 모델 생성자, ② 비즈니스(엔티티 상태 필요)는 도메인 메서드. 한도 검증은 "데이터는 Service 수집 + 판단은 도메인"이되 Week 5로 이연. 계좌상태 위반은 `IllegalStateException`이 아닌 `BusinessException`(정상 시나리오). `Money` VO 보류 | decisions/2026-07-21-입출금-도메인메서드-검증배치-설계결정.md |
 
 ---
 
