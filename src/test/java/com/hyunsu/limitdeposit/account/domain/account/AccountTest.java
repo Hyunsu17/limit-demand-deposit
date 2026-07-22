@@ -1,6 +1,9 @@
 package com.hyunsu.limitdeposit.account.domain.account;
 
+import com.hyunsu.limitdeposit.common.exception.BusinessException;
+import com.hyunsu.limitdeposit.common.exception.ErrorCode;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -9,6 +12,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AccountTest {
 
@@ -47,4 +51,28 @@ class AccountTest {
         assertThat(account.getAvailableBalance()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(account.getOpenDt()).isNotNull();
     }
+
+    @Test
+    @DisplayName("입금_성공")
+    void deposit_success() {
+        //when
+        account.deposit(new BigDecimal("100000000"));
+
+        //then
+        assertThat(account.getBalance()).isEqualByComparingTo(new BigDecimal("100000000"));
+        assertThat(account.getAvailableBalance()).isEqualByComparingTo(new BigDecimal("100000000"));
+        assertThat(account.getLastTxnDt()).isNotNull();
+
+    }
+
+    @Test
+    @Disabled("비활성 계좌를 만들 상태전이 메서드(close/suspend)가 아직 없음 — 해지/지급정지 구현 시 함께 복구")
+    @DisplayName("비활성_계좌_입금")
+    void deposit_notActive_account() {
+        //when & then
+        assertThatThrownBy(()->account.deposit(new BigDecimal("100000000")))
+                .isInstanceOfSatisfying(BusinessException.class, ex-> assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.ACCOUNT_NOT_ACTIVE));
+        assertThat(account.getBalance()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
 }
