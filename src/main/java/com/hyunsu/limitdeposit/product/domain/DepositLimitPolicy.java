@@ -12,7 +12,7 @@ import java.time.LocalDate;
 /**
  * DEP_LMT_POLICY_MST — 입금한도정책.
  * ACCT_LEDGER.dep_lmt_policy_id 가 정책ID로 참조하며, 유효일자 구간(APPY_STT_DT <= 기준일 <= APPY_END_DT)으로
- * 현재 정책을 조회한다. monthly_dp_lmt_amt 가 월입금한도 판단(MonthlyDepositLimit)의 한도값 원천이다.
+ * 현재 정책을 조회한다. bal_lmt_amt · monthly_dp_lmt_amt 가 입금 2중 한도 판단(DepositLimit)의 한도값 원천이다.
  * 기준정보는 Flyway 시드로 적재하며 애플리케이션에서 생성하지 않는다. (Product 와 동일 패턴)
  */
 @Entity
