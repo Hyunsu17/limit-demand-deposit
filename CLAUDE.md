@@ -22,9 +22,9 @@
 | **Week 0** | ✅ 완료 (2026-06-30) — 세팅, 인증, 스켈레톤 |
 | **Week 1** | ✅ 완료 (2026-07-11) — 계좌개설 D1 검증 + TX1/TX2 배관 + 전 계층 테스트 |
 | **Week 2** | ✅ 완료 (2026-07-12) — APPROVED 경로 단위 테스트 + 통합 시나리오 5개(정상/반려/통신오류/롤백보상/D7-B 예외타입) 완료, 전체 스위트 60개 그린 |
-| **Week 3** | 🔄 진행중 (7/19~7/25) — 입금 구현 착수. `Account.lastTxnDt` + `deposit`/`withdraw` 본체, Flyway V4(`deposit_limit_policy`)·V5(거래 3종), 거래·정책 엔티티 + 포트 3파일 완료. 전체 스위트 67개 그린(1 skip) |
-| **다음 단계** | `DepositLimit` VO 재작성(2중 한도·계산 반환 — 기존 `MonthlyDepositLimit`/테스트 대체, **사용자 작성**) → 입금 Service 오케스트레이션(TX 분리·비관적 락 배선) → 통합 테스트 3종 |
-| **미해결(주의)** | `withdraw` 잔액 검증 없음(음수 가능) / 계좌 상태전이 메서드(해지·동결) 부재 → `AccountTest` 비활성 케이스 `@Disabled` 보류 중 / `deposit_limit_policy` D01 시드 금액은 **임시값**(실제 상품 스펙으로 교체 필요) |
+| **Week 3** | 🔄 진행중 (7/19~, **일정 초과**) — 입금 도메인·스키마·포트 완료. `DepositLimit` VO(2중 한도), Flyway V4·V5·**V6**(`TRANS_RAW.fail_reason` + CHECK), 거래·정책 엔티티 + 포트, 입금 조회 포트 2종(비관적 락·월누계 SUM). 전체 스위트 69개 그린(1 skip) |
+| **다음 단계** | 입금 Service 오케스트레이션(입력모델 + **결과 객체** + TX 분리 배선) → 인프라 테스트 3종 → 통합 테스트 |
+| **미해결(주의)** | 새 쿼리 2종(비관적 락·월누계 SUM)·V6 CHECK 제약은 **JPQL 파싱까지만 검증** — 실제 동작 테스트 없음 / `withdraw` 잔액 검증 없음(음수 가능) / 계좌 상태전이 메서드(해지·동결) 부재 → `AccountTest` 비활성 케이스 `@Disabled` 보류 중 / `deposit_limit_policy` D01 시드 금액은 **임시값**(실제 상품 스펙으로 교체 필요) / `ErrorCode.MONTHLY_DEPOSIT_LIMIT_EXCEEDED` 문구가 월한도 한정인데 한도는 2중 |
 | **진행 방식 합의** | 인프라·통합 테스트는 하나씩 설명 → 함께 작성 → 리뷰 (일괄 작성 금지, 2026-07-11 합의) |
 | **데드라인** | 2026-09-26 |
 
@@ -138,7 +138,7 @@ com.hyunsu.limitdeposit
 ### 핵심 제약
 
 - **1인 1계좌** — 전 금융기관 기준. 개설 전 NCIS 외부 API 조회 필수
-- **입금 한도** — `MONTHLY_LIMT_LEDGER`로 월 누계 관리, 정책 테이블(`DEP_LMT_POLICY_MST`) 참조
+- **입금 한도** — 2중 한도 `MIN(보관한도 − 잔액, 월한도 − 당월누계)`. 월 누계는 별도 원장 없이 `TRANS_HISTORY` **실시간 SUM**(입금 거래코드 상수 필터 — 이자입금 배제). 정책 테이블(`DEP_LMT_POLICY_MST`) 참조. `MONTHLY_LIMT_LEDGER`는 벤치마크 대기로 미생성 (2026-07-20 Q1 / 07-22 Q3·Q6)
 - **지급 한도** — 연령대별 이체 한도 (`PYMT_LMT_POLICY_MST`)
 - **정책 변경** — 변경 시 변경된 한도 기준 즉시 적용 (이력 관리 필수)
 
@@ -196,6 +196,7 @@ db/migration/
 ├── V3__create_account_ledger_and_product.sql  ← Phase 3 (완료) — 원장 + 이력 + 상품
 ├── V4__create_deposit_limit_policy.sql        ← Phase 4 (완료) — 입금한도정책 + D01 시드
 ├── V5__create_transaction.sql                 ← Phase 4 (완료) — 거래코드/원본/내역
+├── V6__add_transaction_raw_fail_reason.sql    ← Phase 4 (완료) — 거절 사유 + CHECK 제약
 └── (예정) 이자 — DAILY_BALANCE_SNAPSHOT / INTEREST_HISTORY  ← Phase 5
 ```
 
@@ -317,6 +318,8 @@ db/migration/
 | 2026-07-12 | D7-B 커밋시점 flush 예외타입 리스크 해소 — 실측 결과 `DataIntegrityViolationException`으로 정상 변환(`TransactionSystemException` 우려는 기우), `AccountOpenService` catch 수정 불필요 | queries/2026-07-12-d7b-flush-exception-실측-확인.md |
 | 2026-07-20 | 입출금 프로세스 grill Q1~Q6 — 누계는 실시간 SUM(원장 벤치마크 대기) / 한도초과 입금은 반송(return leg) / 카톡이체 스코프 분리 / `AVAILABLE_BALANCE` 저장 컬럼이 정본(불변식) / 지급도 `TRANS_RAW` 선적재 | decisions/2026-07-20-입출금-프로세스-grill-설계결정.md |
 | 2026-07-22 | **한도 판단은 `Account` 아닌 VO** (판단이 엔티티 상태를 안 쓰면 위치가 틀린 것) / 한도초과는 throw 아닌 **입금가능액 계산 후 분기** — 2중 한도 `MIN(보관한도−잔액, 월한도−누계)` / Flyway V4·V5 4테이블 + **BIGSERIAL 대리키**(ERD 업무키 표기와 의도적 상이) / `TRANS_RAW` 선적재는 **별도 TX 커밋**(복구 주체는 재처리 배치, 보상서비스 불필요) / 월누계 SUM은 거래코드 상수 필터 / 테스트 루틴 = 계약 확정된 도메인 단위는 즉시, Service·통합은 레이어 완성 후 | decisions/2026-07-22-입금-스키마-오케스트레이션-설계결정.md |
+| 2026-07-28 | **입금불능 = 거절**(반송 아님) — 갈림 기준은 push/pull이 아니라 "자금 결제가 입금 판단보다 먼저 끝나는가". 일반 타행이체는 되돌릴 자금이 없음. 거절은 `TRANS_HISTORY` **무기록**, 흔적은 `TRANS_RAW` 처리상태·실패사유만 (07-20 Q2 부분 대체) | decisions/2026-07-28-입금불능-거절-vs-반송-기준.md |
+| 2026-07-30 | **거래 테이블 역할 경계** — `TxnStatus`는 `NORMAL`만(취소/환불 모델은 스코프 진입 시 결정) / **반대거래는 두 레벨**: 은행간 결제 반환은 무기록, **원장이 움직인 되돌림은 필수 기록**(근거: `잔액=거래내역 합계`) / `TRANS_RAW`은 수신 전용 아닌 **"거래 요청 원본"**, 발신 전문 분리 기준은 `process_status` 의미 분화(Week 5) / **당행 내부 계좌 간 이체 스코프 밖 확정** — 모든 이체는 "당행 출금 + 외부 입금" / 거절은 예외 아닌 **결과 객체 반환**(FAILED 마킹이 롤백에 휩쓸리는 것 방지) / `raw_data`=요청 JSON / 당월=역월 | decisions/2026-07-30-거래테이블-역할경계-grill-설계결정.md |
 | 2026-07-21 | **유효성 검증 2단계 배치** — ① 입력값(엔티티 불필요)은 `application/dto` 입력 모델 생성자, ② 비즈니스(엔티티 상태 필요)는 도메인 메서드. 한도 검증은 "데이터는 Service 수집 + 판단은 도메인"이되 Week 5로 이연. 계좌상태 위반은 `IllegalStateException`이 아닌 `BusinessException`(정상 시나리오). `Money` VO 보류 | decisions/2026-07-21-입출금-도메인메서드-검증배치-설계결정.md |
 
 ---
