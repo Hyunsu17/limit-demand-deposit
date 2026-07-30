@@ -47,6 +47,11 @@ public class TransactionRaw extends BaseEntity {
     @Column(name = "process_dttm")
     private LocalDateTime processDttm;
 
+    // [Claude] 실패 시에만 채운다 — 정상·미처리는 NULL(processStatus 가 표현). DB CHECK 제약이 함께 강제
+    @Enumerated(EnumType.STRING)
+    @Column(name = "fail_reason", length = 30)
+    private ProcessFailReason failReason;
+
     private TransactionRaw(ChannelType channelType, String acctNo, BigDecimal txnAmt, String rawData) {
         this.channelType = channelType;
         this.acctNo = acctNo;
@@ -70,8 +75,10 @@ public class TransactionRaw extends BaseEntity {
     }
 
     // [Claude] 검증/원장반영 실패 시 처리실패 전이 (전문은 그대로 보존)
-    public void markFailed() {
+    // 사유를 필수 인자로 받는다 — 반송 없는 거절에서 이 사유가 유일한 추적 근거이므로 생략을 허용하지 않는다
+    public void markFailed(ProcessFailReason failReason) {
         this.processStatus = ProcessStatus.FAILED;
         this.processDttm = LocalDateTime.now();
+        this.failReason = failReason;
     }
 }
