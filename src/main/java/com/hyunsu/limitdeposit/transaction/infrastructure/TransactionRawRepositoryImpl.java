@@ -5,6 +5,8 @@ import com.hyunsu.limitdeposit.transaction.domain.TransactionRawRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 @RequiredArgsConstructor
 public class TransactionRawRepositoryImpl implements TransactionRawRepository {
@@ -14,5 +16,10 @@ public class TransactionRawRepositoryImpl implements TransactionRawRepository {
     @Override
     public TransactionRaw save(TransactionRaw transactionRaw) {
         return jpaRepository.save(transactionRaw);
+    }
+
+    @Override
+    public Optional<TransactionRaw> findById(Long rawSeq) {
+        return jpaRepository.findById(rawSeq);
     }
 }

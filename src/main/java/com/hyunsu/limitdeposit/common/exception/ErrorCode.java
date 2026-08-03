@@ -12,7 +12,9 @@ public enum ErrorCode {
 
     ACCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, "ACCOUNT_NOT_FOUND", "계좌를 찾을 수 없습니다."),
     INSUFFICIENT_BALANCE(HttpStatus.BAD_REQUEST, "INSUFFICIENT_BALANCE", "잔액이 부족합니다."),
-    MONTHLY_DEPOSIT_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "MONTHLY_DEPOSIT_LIMIT_EXCEEDED", "월 입금 한도를 초과했습니다."),
+    // [Claude] 한도는 보관한도·월입금한도 2중이라 어느 쪽으로 걸렸든 같은 코드로 응답한다.
+    // [Claude] 이전 이름(MONTHLY_DEPOSIT_LIMIT_EXCEEDED)은 월한도 한정 문구라 보관한도 거절에 거짓이었다
+    DEPOSIT_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "DEPOSIT_LIMIT_EXCEEDED", "입금 한도를 초과했습니다."),
     DUPLICATE_ACCOUNT(HttpStatus.CONFLICT, "DUPLICATE_ACCOUNT", "이미 존재하는 계좌입니다."),
     LOCK_ACQUISITION_FAILED(HttpStatus.CONFLICT, "LOCK_ACQUISITION_FAILED", "락 획득에 실패했습니다."),
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "잘못된 요청입니다."),
@@ -27,6 +29,8 @@ public enum ErrorCode {
 
 
     PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "PRODUCT_NOT_FOUND", "유효한 상품을 찾을 수 없습니다."),
+    // [Claude] 기준정보 누락 — 고객 거절이 아니라 시스템 오류다(500). 거절 사유 코드를 부여하지 않는 이유
+    DEPOSIT_POLICY_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR, "DEPOSIT_POLICY_NOT_FOUND", "유효한 입금한도정책을 찾을 수 없습니다."),
     ACCOUNT_OPEN_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "ACCOUNT_OPEN_FAILED", "계좌 개설 처리 중 오류가 발생했습니다. 다시 시도해주세요.");
 
     private final HttpStatus httpStatus;

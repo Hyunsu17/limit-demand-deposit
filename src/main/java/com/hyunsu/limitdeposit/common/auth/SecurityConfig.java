@@ -29,6 +29,9 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
+                        // [Claude] 입금은 타행/송금기관이 보내는 대외 수신 API 라 고객 JWT 가 없다.
+                        // [Claude] 실제 환경이라면 상호 인증(mTLS·전용망)이 대신하지만 그것은 비업무 영역이라 생략
+                        .requestMatchers(HttpMethod.POST, "/api/deposits").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

@@ -89,8 +89,17 @@ public class Account extends BaseEntity {
         return new Account(acctNo, customerId, prodCd, ncisCheckId, depLmtPolicyId, pymtLmtPolicyId);
     }
 
+    /**
+     * [Claude] 거래 가능 상태인지 묻기만 한다(전이시키지 않음).
+     * 입금 Service 가 원장을 건드리기 전에 분기해야 해서 필요하다 — requireActive() 의 예외를 태우면
+     * 같은 TX 의 TRANS_RAW FAILED 마킹이 롤백된다(2026-07-30 Q5).
+     */
+    public boolean isActive() {
+        return this.acctStatus == AccountStatus.ACTIVE;
+    }
+
     private void requireActive(){
-        if (!(this.acctStatus == AccountStatus.ACTIVE)) {
+        if (!isActive()) {
             throw new BusinessException(ErrorCode.ACCOUNT_NOT_ACTIVE);
         }
     }
