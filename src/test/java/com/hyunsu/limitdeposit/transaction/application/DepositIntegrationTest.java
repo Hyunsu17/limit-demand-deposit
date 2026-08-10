@@ -1,9 +1,12 @@
 package com.hyunsu.limitdeposit.transaction.application;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hyunsu.limitdeposit.common.exception.ErrorCode;
 import com.hyunsu.limitdeposit.customer.domain.Customer;
 import com.hyunsu.limitdeposit.customer.domain.CustomerRepository;
 import com.hyunsu.limitdeposit.transaction.domain.ChannelType;
+import com.hyunsu.limitdeposit.transaction.domain.ProcessFailReason;
+import com.hyunsu.limitdeposit.transaction.domain.TransactionCodes;
 import com.hyunsu.limitdeposit.transaction.presentation.dto.DepositApiResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,18 +24,21 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Map;
 
+
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * [Claude] 입금 전체 플로우 @SpringBootTest 통합 테스트 — 컨트롤러 → TX1(선적재) → TX2(락·한도·원장) → DB.
- *
+ * <p>
  * 계좌개설과 같은 규칙을 따른다: 테스트에 @Transactional 을 붙이지 않는다.
  * TX1/TX2 가 각자 커밋되는 것과, 컨트롤러의 거절 throw 가 그 커밋을 되돌리지 '않는' 것이
  * 검증 대상이라 테스트 트랜잭션으로 감싸면 의미가 사라진다. 정리는 @BeforeEach 가 직접 한다.
- *
+ * <p>
  * MockMvc 로 HTTP 계층까지 태우는 이유 — 거절이 4xx 로 나가는 경로(GlobalExceptionHandler)와
+ *
  * @Valid 실패가 400 이 되는 경로가 2026-08-03 결정의 일부라 서비스 직접 호출로는 덮이지 않는다.
  */
 @SpringBootTest
@@ -40,7 +46,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 class DepositIntegrationTest {
 
-    /** V4 시드 D01 — 보관한도 5천만, 월한도 3천만 */
+    /**
+     * V4 시드 D01 — 보관한도 5천만, 월한도 3천만
+     */
     private static final BigDecimal BALANCE_LIMIT = new BigDecimal("50000000");
     private static final BigDecimal MONTHLY_LIMIT = new BigDecimal("30000000");
 
@@ -75,7 +83,6 @@ class DepositIntegrationTest {
                 .birthDate(LocalDate.of(1990, 1, 1))
                 .build()).getId();
 
-        insertActiveAccount(BigDecimal.ZERO);
     }
 
     /**
@@ -90,20 +97,33 @@ class DepositIntegrationTest {
                 ACCT_NO, customerId, balance, balance);
     }
 
+    /**
+     * 누계 SUM을 채우려고 입금 플로우를 태우지 않고 직접 넣는다.
+     */
+    private void insertActiveTransactionHist(BigDecimal amt, BigDecimal balanceBefore) {
+        jdbcTemplate.update(
+                "INSERT INTO transaction_history (acct_no, txn_code, txn_dt, txn_dttm, txn_amt, balance_after, txn_status, channel_type) " +
+                        "VALUES (?, ?, CURRENT_DATE, NOW(),? , ?, 'NORMAL', ?)",
+                ACCT_NO, TransactionCodes.DEPOSIT, amt, balanceBefore.add(amt),ChannelType.INTERBANK.name());
+
+    }
+
     @Test
     @DisplayName("정상_입금이면_원장이_증가하고_원본_COMPLETED와_거래내역이_남는다")
     void deposit_success_updatesLedger_marksRawCompleted_recordsHistory() throws Exception {
         // given
-        Map<String, String> paramMap= Map.of(
+        Map<String, String> paramMap = Map.of(
                 "acctNo", ACCT_NO,
                 "amount", "10000",
                 "channelType", ChannelType.INTERBANK.name());
-        String content =objectMapper.writeValueAsString(paramMap);
+        String content = objectMapper.writeValueAsString(paramMap);
+        insertActiveAccount(BigDecimal.ZERO);
+
 
         // when & then
         MvcResult result = mockMvc.perform(post("/api/deposits")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(content))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(content))
                 .andExpect(status().isOk())
                 .andReturn();
         DepositApiResponse response = objectMapper.readValue(
@@ -129,24 +149,45 @@ class DepositIntegrationTest {
         // 4) transaction_history 1건 — balance_after 가 원장 잔액과 일치
         Map<String, Object> transactionHistory = jdbcTemplate.queryForMap(
                 "SELECT balance_after FROM transaction_history WHERE acct_no =?", ACCT_NO);
-        assertThat((BigDecimal)transactionHistory.get("balance_after")).isEqualByComparingTo((BigDecimal) ledger.get("balance"));
+        assertThat((BigDecimal) transactionHistory.get("balance_after")).isEqualByComparingTo((BigDecimal) ledger.get("balance"));
 
     }
 
     @Test
     @DisplayName("월입금한도를_초과하면_거절되고_원장은_그대로_원본만_FAILED로_남는다")
     void deposit_exceedsMonthlyLimit_rejected_ledgerUnchanged_rawMarkedFailed() throws Exception {
-
-
         // given
+        insertActiveAccount(MONTHLY_LIMIT);
+        insertActiveTransactionHist(MONTHLY_LIMIT, BigDecimal.ZERO);
+        Map<String, String> paramMap = Map.of(
+                "acctNo", ACCT_NO,
+                "amount", "10000",
+                "channelType", ChannelType.INTERBANK.name());
+        String content = objectMapper.writeValueAsString(paramMap);
 
-        // when
-
-        // then
+        // when & then
+        mockMvc.perform(post("/api/deposits")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(content))
         // 1) HTTP 4xx + DEPOSIT_LIMIT_EXCEEDED
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(ErrorCode.DEPOSIT_LIMIT_EXCEEDED.getCode()));
+
         // 2) account_ledger.balance 무변경
-        // 3) transaction_history 0건 (2026-07-28 — 거절은 무기록)
+        Map<String, Object> ledger = jdbcTemplate.queryForMap(
+                "SELECT balance FROM account_ledger WHERE acct_no = ?", ACCT_NO);
+        assertThat((BigDecimal) ledger.get("balance")).isEqualByComparingTo(MONTHLY_LIMIT);
+
+        // 3) transaction_history 1건(기존 건수 1건, 신규는 반영 X) (2026-07-28 — 거절은 무기록)
+        Long count = jdbcTemplate.queryForObject(
+                "SELECT count(*) as hist_count FROM transaction_history WHERE acct_no =?", Long.class, ACCT_NO);
+        assertThat(count).isEqualTo(1);
+
         // 4) transaction_raw — FAILED + fail_reason 존재
         //    ↑ 컨트롤러의 throw 가 TX1/TX2 커밋을 되돌리지 않는다는 07-30 Q5 설계의 실증
+        Map<String, Object> transactionRaw = jdbcTemplate.queryForMap(
+                "SELECT process_status, fail_reason FROM transaction_raw WHERE acct_no =?", ACCT_NO);
+        assertThat(transactionRaw.get("process_status")).isEqualTo("FAILED");
+        assertThat(transactionRaw.get("fail_reason")).isEqualTo(ProcessFailReason.DEPOSIT_LIMIT_EXCEEDED.name());
     }
 }
